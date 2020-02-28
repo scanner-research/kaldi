@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017-2018  Johns Hopkins University (author: Daniel Povey)
 #           2017-2018  Yiming Wang
@@ -136,7 +136,7 @@ if [ $stage -le 12 ]; then
   echo "$0: creating neural net configs using the xconfig parser";
 
   num_targets=$(tree-info $tree_dir/tree | grep num-pdfs | awk '{print $2}')
-  learning_rate_factor=$(echo "print 0.5/$xent_regularize" | python) 
+  learning_rate_factor=$(echo "print (0.5/$xent_regularize)" | python) 
   opts="l2-regularize=0.08 dropout-per-dim=true dropout-per-dim-continuous=true"
   linear_opts="orthonormal-constraint=-1.0"
   output_opts="l2-regularize=0.04"
@@ -255,7 +255,7 @@ if [ $stage -le 15 ]; then
           --extra-right-context-final 0 \
           --frames-per-chunk $frames_per_chunk \
           --nj $nspk --cmd "$decode_cmd"  --num-threads 4 \
-          --online-ivector-dir exp/nnet3/ivectors_${data} \
+          --online-ivector-dir exp/nnet3/ivectors_${data}_hires \
           $tree_dir/graph data/${data}_hires ${dir}/decode_${data} || exit 1
     ) || touch $dir/.error &
   done

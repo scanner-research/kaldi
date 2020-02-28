@@ -25,6 +25,8 @@
 
 #include <vector>
 #include <map>
+#include <algorithm>
+#include <thread>
 
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
@@ -102,6 +104,20 @@ namespace chain {
  */
 
 
+struct GenericNumeratorComputationOptions {
+  unsigned int num_threads;
+  GenericNumeratorComputationOptions() : 
+    num_threads(std::min(static_cast<unsigned int>(4),
+                std::thread::hardware_concurrency())) { }
+  void Register(OptionsItf *opts) {
+    opts->Register("numerator-graph-threads", &num_threads, "Number of threads "
+                   "to use to parallelize the chain numerator graph computation. "
+                   "If 0, use available hardware concurrency.");
+  }
+
+};
+
+
 // This class is responsible for the forward-backward of the
 // end-to-end 'supervision' (numerator) FST. This kind of FST can
 // have self-loops.
@@ -112,7 +128,8 @@ namespace chain {
 class GenericNumeratorComputation {
  public:
   /// Initializes the object.
-  GenericNumeratorComputation(const Supervision &supervision,
+  GenericNumeratorComputation(const GenericNumeratorComputationOptions &opts,
+                              const Supervision &supervision,
                               const CuMatrixBase<BaseFloat> &nnet_output);
 
   // Does the forward-backward computation. Returns the total log-prob
@@ -170,7 +187,7 @@ class GenericNumeratorComputation {
   BaseFloat GetTotalProb(const Matrix<BaseFloat> &alpha);
 
   // some checking that we can do if debug mode is activated, or on frame zero.
-  // Sets ok_ to false if a bad problem is detected.
+  // Returns false if a bad problem is detected.
   bool CheckValues(int32 seq,
                    const Matrix<BaseFloat> &probs,
                    const Matrix<BaseFloat> &alpha,
@@ -196,9 +213,11 @@ class GenericNumeratorComputation {
   Matrix<BaseFloat> final_probs_;  // indexed by seq, state
 
   // an offset subtracted from the logprobs of transitions out of the first
-  // state of each graph to help reduce numerical problems. Note the
-  // generic forward-backward computations cannot be done in log-space.
+  // state of each graph to help reduce numerical problems.
   Vector<BaseFloat> offsets_;
+
+  // Configuration options
+  const GenericNumeratorComputationOptions &opts_;
 };
 
 }  // namespace chain
